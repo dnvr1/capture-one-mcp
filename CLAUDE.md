@@ -24,8 +24,8 @@ whoever is *changing* the code.
 ```sh
 npm run build        # tsc -> dist/ (gitignored)
 npm run typecheck    # tsc --noEmit
-npm run verify       # typecheck + parse every embedded JXA block (42 currently)
-npm test             # build + node --test tests/*.test.mjs (190 currently)
+npm run verify       # typecheck + parse every embedded JXA block (43 currently)
+npm test             # build + node --test tests/*.test.mjs (200 currently)
 ```
 
 `npm run verify && npm test` is the gate for any change. Both are hermetic:
@@ -39,6 +39,7 @@ These need the live app, with a document open, and are **not** part of the gate:
 ```sh
 npm run verify:live  # resolve every generated property name against the app
 npm run smoke        # drive the built server over stdio as a real MCP client
+npm run verify:keywords -- "<keyword>"  # co_remove_keyword blast radius (testbed-locked)
 ```
 
 Run `verify:live` after touching anything generated. A wrong JXA property name
@@ -244,7 +245,9 @@ in `docs/`.
 - **Keywords cannot be created via AppleScript** — no `make` responder, all
   properties read-only, every construction form tried and rejected. Hence
   `co_apply_keyword` requires an existing keyword, and `co_remove_keyword`
-  remains **unverified** because none can be created to test against.
+  remains **unverified** because none can be created to test against. It stops
+  after the first removal if the keyword leaves the document's list; settle it
+  with `npm run verify:keywords -- "<keyword>"` on a UI-added keyword.
 - **Layers have no id** and are addressed by index; 0 is always the background
   layer, which rejects both name and opacity changes.
   See [docs/LAYERS.md](docs/LAYERS.md).
@@ -260,7 +263,8 @@ This server edits a real photo library. The standing rules:
 1. **Never point a write test at a client session or catalog.** Automated live
    testing uses one disposable session, nominated by the operator through
    `CAPTURE_ONE_MCP_TESTBED_DOCUMENT` (the document id, i.e. its folder path).
-   `scripts/testbed.mjs` and `scripts/verify-adjustments.mjs` are **locked** to
+   `scripts/testbed.mjs`, `scripts/verify-adjustments.mjs` and
+   `scripts/verify-keyword-removal.mjs` are **locked** to
    that one document and refuse any other rather than trusting the caller. The
    lock has no default: with the variable unset they refuse to run at all, before
    sending a single Apple Event, so an unconfigured machine cannot write anywhere.

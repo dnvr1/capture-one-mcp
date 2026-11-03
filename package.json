@@ -22,6 +22,7 @@
     "smoke": "node scripts/smoke.mjs",
     "verify": "tsc --noEmit && node scripts/check-jxa.mjs",
     "verify:live": "node scripts/verify-property-names.mjs",
+    "verify:keywords": "node scripts/verify-keyword-removal.mjs",
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {

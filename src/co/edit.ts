@@ -226,19 +226,36 @@ export async function applyKeyword(target: Target, keyword: string): Promise<Edi
  *
  * Deletes the keyword element belonging to each VARIANT, not the document's
  * keyword object, so the keyword should survive in the document's keyword list
- * and other variants should keep it. documentKeywordSurvives reports whether
- * that held, so a caller can tell if the delete reached further than intended.
+ * and other variants should keep it.
  *
  * UNVERIFIED against a real keyword: the standing test session has none, and
  * keywords cannot be created through the scripting interface (see
- * applyKeyword), so there was no way to set one up without touching a client
- * session. Treat the blast radius as unconfirmed until it has been exercised
- * on a document with a keyword added through the UI.
+ * applyKeyword). Until scripts/verify-keyword-removal.mjs has been run on a
+ * document with a keyword added through the UI, the blast radius is unknown,
+ * so this guards it instead of trusting it:
+ *
+ *  - The document's keyword list is re-read straight after the FIRST variant
+ *    that actually loses the keyword. If the keyword has gone from the document
+ *    too, the delete reached further than one variant, and the batch stops
+ *    there with status "incomplete" and the rest listed as unattempted. One
+ *    variant is the most a wrong guess about the app can cost, rather than the
+ *    whole selection. Checking once is enough to catch that behaviour (the
+ *    first delete would show it) without an extra document read per variant.
+ *  - Each variant's keywords are read back after the delete, and the entry
+ *    reports keywordStillPresent, because a delete that returns without error
+ *    proves nothing in this app (invariant 4).
+ *  - documentKeywordBefore is reported next to documentKeywordSurvives, so a
+ *    keyword that was never in the document's list does not read as one this
+ *    call destroyed.
  */
 export async function removeKeyword(target: Target, keyword: string): Promise<
-  EditResult & { documentKeywordSurvives: boolean }
+  EditResult & {
+    documentKeywordBefore: boolean;
+    documentKeywordSurvives: boolean;
+    stoppedBecause?: "document_keyword_removed";
+  }
 > {
-  return runJxa<EditResult & { documentKeywordSurvives: boolean }>(
+  return runJxa(
     `
     const resolved = resolveTargets(args.target);
     const d = resolved.doc;
@@ -246,6 +263,17 @@ export async function removeKeyword(target: Target, keyword: string): Promise<
     const notFound = resolved.notFound;
 
     const wantedName = String(args.keyword).toLowerCase();
+    function hasKeyword(list) {
+      for (let i = 0; i < list.length; i++) {
+        if (String(list[i].name()).toLowerCase() === wantedName) return true;
+      }
+      return false;
+    }
+
+    const before = hasKeyword(d.keywords());
+    // Nothing to guard when the document never listed the keyword.
+    let documentChecked = !before;
+    let leaked = false;
     const affected = [];
 
     let stopped = null;
@@ -262,7 +290,36 @@ export async function removeKeyword(target: Target, keyword: string): Promise<
         }
         const info = describeVariant(v);
         info.changes = { keywordRemoved: removed ? args.keyword : null };
+        if (removed) {
+          // A failed read is null with its reason, never coerced to false:
+          // false would claim the removal was confirmed.
+          try {
+            info.readBack = { keywordStillPresent: hasKeyword(v.keywords()) };
+          } catch (e) {
+            info.readBack = { keywordStillPresent: null, error: String(e).replace(/^Error:\\s*/, "") };
+          }
+        }
         affected.push(info);
+
+        if (removed && !documentChecked) {
+          documentChecked = true;
+          if (!hasKeyword(d.keywords())) {
+            leaked = true;
+            const rest = [];
+            for (let r = t + 1; r < targets.length; r++) {
+              try { rest.push(String(targets[r].id())); } catch (e3) { rest.push(null); }
+            }
+            stopped = {
+              unattemptedIds: rest,
+              guidance: "Removing '" + args.keyword + "' from variant " + info.id + " also removed it " +
+                "from the document's keyword list, so the delete reached beyond that one variant. " +
+                "Stopped before touching any other target; unattemptedIds were not touched. Other " +
+                "variants in the document may have lost the keyword too: check them, and re-add the " +
+                "keyword in the Capture One UI if it is needed (it cannot be created by script).",
+            };
+            break;
+          }
+        }
       } catch (e) {
         stopped = stopBatch(targets, t, e);
         affected.push(stopped.entry);
@@ -270,17 +327,13 @@ export async function removeKeyword(target: Target, keyword: string): Promise<
       }
     }
 
-    let survives = false;
-    const after = d.keywords();
-    for (let i = 0; i < after.length; i++) {
-      if (String(after[i].name()).toLowerCase() === wantedName) { survives = true; break; }
-    }
-
     const out = {
       status: stopped ? "incomplete" : "complete",
       affected: affected, notFound: notFound, count: affected.length,
-      documentKeywordSurvives: survives,
+      documentKeywordBefore: before,
+      documentKeywordSurvives: hasKeyword(d.keywords()),
     };
+    if (leaked) out.stoppedBecause = "document_keyword_removed";
     if (stopped) { out.unattemptedIds = stopped.unattemptedIds; out.guidance = stopped.guidance; }
     return out;
     `,
