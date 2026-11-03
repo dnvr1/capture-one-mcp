@@ -23,10 +23,17 @@ Built against the dictionary of the installed app:
 
 | | |
 | --- | --- |
-| App | Capture One 16.8.5.30 |
+| App | Capture One 16.9.0.10 |
 | Bundle id | `com.captureone.captureone16` |
-| Dictionary | [`reference/CaptureOne-16.8.5.sdef`](reference/CaptureOne-16.8.5.sdef) |
+| Dictionary | [`reference/CaptureOne-16.9.sdef`](reference/CaptureOne-16.9.sdef) |
 | Digest | [`docs/DICTIONARY.md`](docs/DICTIONARY.md) |
+
+The editing tools were last validated live on 16.8.5, and the findings under
+`docs/` date from then. On 16.9 the read tools and every generated property name
+have been checked against the running app; nothing has been written. The 16.9
+dictionary only adds to 16.8.5 apart from one renamed `auto select mode` value
+this server does not use, and regenerating from it leaves the adjustment and
+recipe tables unchanged.
 
 Regenerate the digest against whatever build is installed:
 

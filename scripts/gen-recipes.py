@@ -7,7 +7,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
-SDEF = os.environ.get("CO_SDEF", "reference/CaptureOne-16.8.5.sdef")
+SDEF = os.environ.get("CO_SDEF", "reference/CaptureOne-16.9.sdef")
 # 'number' appears alongside 'real' in this dictionary (pixels per inch,
 # scaling values); dropping it silently lost three writable properties.
 NUMERIC = {"real", "number"}

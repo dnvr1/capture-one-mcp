@@ -625,6 +625,11 @@ const AS_ERROR = "\u00abERR\u00bb";
  * Values come back tab-delimited because AppleScript has no JSON; a property
  * that cannot be read yields a null rather than failing the whole read, since
  * some are simply unset (an export destination that has never been chosen).
+ *
+ * `missing value` is tested before the text coercion because `as text` turns it
+ * into the string "missing value", which is truthy: it read as a real import
+ * destination, and the "destination not set" guard in exportOriginals relies on
+ * unset being null.
  */
 export async function readDocumentSettings(
   settingsObject: string,
@@ -640,7 +645,9 @@ export async function readDocumentSettings(
   const lines = properties
     .map(
       (p) =>
-        `  try\n    set end of out to ((${p} of ${settingsObject}) as text)\n` +
+        `  try\n    set settingValue to (${p} of ${settingsObject})\n` +
+        `    if settingValue is missing value then\n      set end of out to "${AS_ERROR}"\n` +
+        `    else\n      set end of out to (settingValue as text)\n    end if\n` +
         `  on error\n    set end of out to "${AS_ERROR}"\n  end try`,
     )
     .join("\n");
@@ -662,8 +669,11 @@ export async function readDocumentSettings(
   const parts = raw.split("\t");
   const out: Record<string, string | null> = {};
   properties.forEach((p, i) => {
-    const v = parts[i];
-    out[p] = v === undefined || v === AS_ERROR ? null : v;
+    // Every property pushes one entry, so a missing part can only be an empty
+    // value at the end that runAppleScript's trimEnd took with the final tab.
+    // Empty is a real answer (no naming format set), not an unreadable one.
+    const v = parts[i] ?? "";
+    out[p] = v === AS_ERROR ? null : v;
   });
   return out;
 }

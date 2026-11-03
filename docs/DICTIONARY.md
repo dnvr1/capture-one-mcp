@@ -1,4 +1,4 @@
-# Capture One scripting dictionary (16.8.5.30)
+# Capture One scripting dictionary (16.9.0.10)
 
 Generated from the installed app's `CaptureOne.sdef` by `scripts/gen-dictionary.py`. Do not hand-edit.
 
@@ -307,6 +307,11 @@ Relink a catalog image file.  The file must be the exact same size and type as t
 
 Reload a variant's source file metadata.
 
+### `repack`
+- target: `image`
+
+Synchronously write a packed image's full state. Does nothing if the image is not packed.
+
 ### `reset`
 - target: `item`
 
@@ -317,6 +322,21 @@ Reset settings to defaults.
 
 Reset the adjustment settings of a variant.
 
+### `reset assisted review`
+- target: `document`
+- param `variants`: `variant[]` (**required**)
+
+Clear Assisted Review results from the given variants.
+
+### `review variants`
+- target: `document`
+- param `variants`: `variant[]` (**required**)
+- param `eyes state`: `boolean` (optional)
+- param `eyes focus`: `boolean` (optional)
+- param `exposure`: `boolean` (optional)
+
+Run Assisted Review analysis on the given variants. When eyes state, eyes focus or exposure are omitted, uses the current Assisted Review settings.
+
 ### `rotate left`
 - target: `variant`
 
@@ -326,6 +346,11 @@ Rotate the variant left 90 degrees.
 - target: `variant`
 
 Rotate the variant right 90 degrees.
+
+### `save`
+- target: `document`
+
+Save the document, writing any pending variant edits (ratings, color tags, crops and adjustments) to the session, and wait until the save has completed.  Use this before moving, renaming or adding files on disk, or before changing the capture folder, to guarantee that in-memory edits are persisted first.
 
 ### `select`
 - target: `document`
@@ -362,6 +387,9 @@ Sync a variant's metadata back to its source file.
 - param `removing`: `boolean` (optional)
 
 Perform imports and/or deletes in a folder collection to reflect the contents of the actual folder on disk.  All parameters below are optional.
+
+### `telemetry`
+- param `value`: `text` (**required**)
 
 ### `unpack`
 - target: `image`
@@ -402,6 +430,7 @@ _inherits from `application`_
 | `all variants` | `variant[]` | read-only |
 | `rate auto advance` | `boolean` | rw |
 | `tag auto advance` | `boolean` | rw |
+| `assisted review during tethering` | `boolean` | rw |
 | `app version` | `text` | read-only |
 | `primary variant` | `variant` | read-only |
 | `next capture adjustments` | `nextcaptureadjustments` | rw |
@@ -509,6 +538,7 @@ _inherits from `application`_
 | --- | --- | --- |
 | `name` | `text` | read-only |
 | `identifier` | `text` | read-only |
+| `wireless` | `boolean` | read-only |
 | `retether` | `boolean` | rw |
 | `format` | `text` | rw |
 | `sensor plus` | `text` | rw |
@@ -742,6 +772,7 @@ _inherits from `application`_
 | `visible` | `boolean` | read-only |
 | `queued` | `boolean` | read-only |
 | `processing mode` | `technical processing mode` | rw |
+| `color system` | `curve color system` | rw |
 | `engine` | `integer` | read-only |
 | `adjustments` | `adjustment settings` | rw |
 | `styles` | `text[]` | rw |
@@ -801,6 +832,9 @@ _inherits from `application`_
 | `crop centerX` | `integer` | rw |
 | `crop centerY` | `integer` | rw |
 | `crop outside image` | `boolean` | rw |
+| `assisted review eyes state` | `assisted review eyes state` | read-only |
+| `assisted review eyes focus` | `assisted review eyes focus` | read-only |
+| `assisted review exposure` | `assisted review exposure` | read-only |
 
 ### `lens correction settings`
 
@@ -948,6 +982,9 @@ _inherits from `application`_
 | `red` | `integer` | rw |
 | `green` | `integer` | rw |
 | `blue` | `integer` | rw |
+| `target red` | `integer` | rw |
+| `target green` | `integer` | rw |
+| `target blue` | `integer` | rw |
 | `hue start` | `real` | rw |
 | `hue end` | `real` | rw |
 | `saturation start` | `real` | rw |
@@ -956,6 +993,9 @@ _inherits from `application`_
 | `hue change` | `real` | rw |
 | `saturation change` | `real` | rw |
 | `lightness change` | `real` | rw |
+| `hue uniformity` | `real` | rw |
+| `saturation uniformity` | `real` | rw |
+| `lightness uniformity` | `real` | rw |
 
 ### `tools configuration`
 
@@ -1058,6 +1098,7 @@ _inherits from `application`_
 | `file` | `file` | read-only |
 | `file size` | `integer` | read-only |
 | `name` | `text` | rw |
+| `source filename` | `text` | rw |
 | `id` | `text` | read-only |
 | `dimensions` | `point` | read-only |
 | `preliminary` | `boolean` | read-only |
@@ -1214,8 +1255,11 @@ _inherits from `application`_
 ## Enumerations
 
 - **adjustments source**: `default`, `copy from last`, `copy from primary`, `copy from clipboard`, `copy specific from last`, `copy specific from primary`, `copy variants from last`, `copy variants from primary`, `document values`
+- **assisted review exposure**: `no issues detected`, `bad exposure`
+- **assisted review eyes focus**: `no issues detected`, `likely out of focus`, `out of focus`, `cannot tell`
+- **assisted review eyes state**: `no issues detected`, `likely closed eyes`, `closed eyes`, `cannot tell`
 - **attributeUserLevel**: `basic`, `advanced`, `developer`
-- **auto select mode**: `disabled`, `immediately`, `when ready (without ai)`, `when ready`
+- **auto select mode**: `disabled`, `immediately`, `when preview ready`, `when ready`
 - **browser label**: `off`, `edit`, `status`
 - **browser mode**: `grid`, `list`, `filmstrip`
 - **browser placement**: `left`, `right`, `bottom`
@@ -1224,6 +1268,7 @@ _inherits from `application`_
 - **collectionType**: `favorite`, `catalog folder`, `album`, `group`, `project`, `smart album`
 - **compareModes**: `display before`, `display split`
 - **crop aspect ratio orientation**: `landscape`, `portrait`, `square`
+- **curve color system**: `Capture One`, `DNG`, `Fujifilm`, `From File`, `Other`
 - **distance type**: `percent of diagonal`, `inches`, `centimeters`
 - **documentType**: `session`, `catalog`
 - **edge type**: `top`, `left`, `right`, `bottom`

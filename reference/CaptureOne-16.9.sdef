@@ -182,6 +182,25 @@
             <enumerator name="sclera" code="PMsc"><cocoa integer-value="6"/></enumerator>
             <enumerator name="clothes" code="PMcl"><cocoa integer-value="7"/></enumerator>
         </enumeration>
+        
+        <enumeration name="assisted review eyes state" code="ARes" description="Assisted Review eyes-state result.">
+            <enumerator name="no issues detected" code="ARok"><cocoa integer-value="0"/></enumerator>
+            <enumerator name="likely closed eyes" code="ARlc"><cocoa integer-value="1"/></enumerator>
+            <enumerator name="closed eyes" code="ARce"><cocoa integer-value="2"/></enumerator>
+            <enumerator name="cannot tell" code="ARct"><cocoa integer-value="3"/></enumerator>
+        </enumeration>
+
+        <enumeration name="assisted review eyes focus" code="ARef" description="Assisted Review eyes-focus result.">
+            <enumerator name="no issues detected" code="ARok"><cocoa integer-value="0"/></enumerator>
+            <enumerator name="likely out of focus" code="ARlf"><cocoa integer-value="1"/></enumerator>
+            <enumerator name="out of focus" code="ARof"><cocoa integer-value="2"/></enumerator>
+            <enumerator name="cannot tell" code="ARct"><cocoa integer-value="3"/></enumerator>
+        </enumeration>
+
+        <enumeration name="assisted review exposure" code="ARex" description="Assisted Review exposure result.">
+            <enumerator name="no issues detected" code="ARok"><cocoa integer-value="0"/></enumerator>
+            <enumerator name="bad exposure" code="ARbd"><cocoa integer-value="1"/></enumerator>
+        </enumeration>
 
 		<class name="application" code="capp" description="Capture One application class.  Directly contained image and variant elements are for the current collection of the current document." inherits="application">
 			<cocoa class="Application"/>
@@ -260,6 +279,7 @@
 			</property>
             <property name="rate auto advance" code="CavR" type="boolean" description="If Capture One should automatically select the next image after an image's rating has been changed from the user interface."/>
             <property name="tag auto advance" code="CavT" type="boolean" description="If Capture One should automatically select the next image after an image's color tag has been changed from the user interface."/>
+            <property name="assisted review during tethering" code="ARdt" type="boolean" access="rw" description="If Capture One should automatically run Assisted Review on incoming images during tethered capture."/>
 			<property name="app version" code="cver" description="The version of Capture One" type="text" access="r"/>
 			<property name="primary variant" code="cprv" description="The primary selected variant" type="variant" access="r"/>
 			<property name="next capture adjustments" code="cnca" description="(PRO Only) When an image is captured, what adjustments should be applied? (deprecated)" type="nextcaptureadjustments" hidden="yes"/>
@@ -305,6 +325,9 @@
             <responds-to name="test async event" hidden="yes">
                 <cocoa method="handleTestAsyncEventCommand:"/>
             </responds-to>
+            <responds-to name="telemetry" hidden="yes">
+                <cocoa method="handleTelemetryCommand:"/>
+            </responds-to>
 
             <property name="compare enabled" type="boolean" code="BAen" description="Enable/disable the Before/After.">
                 <cocoa key="compareBeforeAfterEnabled"/>
@@ -330,7 +353,7 @@
         <enumeration name="auto select mode" code="Ceas">
             <enumerator name="disabled" code="CSnv"/>
             <enumerator name="immediately" code="CSim"/>
-            <enumerator name="when ready (without ai)" code="CSai"/>
+            <enumerator name="when preview ready" code="CSai"/>
             <enumerator name="when ready" code="CSwr"/>
         </enumeration>
 
@@ -425,6 +448,9 @@
 			<responds-to name="browse">
 				<cocoa method="handleBrowseScriptCommand:"/>
 			</responds-to>
+			<responds-to name="save">
+				<cocoa method="handleSaveScriptCommand:"/>
+			</responds-to>
 			<responds-to name="close">
 				<cocoa method="handleCloseScriptCommand:"/>
 			</responds-to>
@@ -480,6 +506,12 @@
             </responds-to>
 			<responds-to command="batch rename">
 				<cocoa method="handleBatchRenameCommand:"/>
+			</responds-to>
+			<responds-to command="review variants">
+				<cocoa method="handleReviewVariantsCommand:"/>
+			</responds-to>
+			<responds-to command="reset assisted review">
+				<cocoa method="handleResetAssistedReviewCommand:"/>
 			</responds-to>
 			<responds-to command="import">
 				<cocoa method="handleImportCommand:"/>
@@ -548,6 +580,7 @@
             <property name="identifier" code="CCid" type="text" access="r" description="The camera's unique identifier.">
                 <cocoa key="uuid"/>
             </property>
+            <property name="wireless" code="CCwi" type="boolean" access="r" description="Is this camera connected wirelessly. May be incorrect for some unusual connection methods."/>
             <property name="retether" code="CCrt" type="boolean" access="rw" description="Is ReTether active for this camera."/>
             <property name="format" code="CCfm" type="text" access="rw" description="Current image format."/>
 			<property name="sensor plus" code="CCsp" type="text" access="rw" description="Current Sensor+ setting."/>
@@ -694,6 +727,10 @@
 				<cocoa key="thePath"/>
 			</parameter>
 		</command>
+
+        <command name="save" code="COdcSave" description="Save the document, writing any pending variant edits (ratings, color tags, crops and adjustments) to the session, and wait until the save has completed.  Use this before moving, renaming or adding files on disk, or before changing the capture folder, to guarantee that in-memory edits are persisted first.">
+            <direct-parameter type="document"/>
+        </command>
 
 		<enumeration name="collectionType" code="COce"> 
 			<enumerator name="favorite" code="CCfv"/> 
@@ -1103,6 +1140,7 @@
             <property name="visible" code="pvis" description="Is this variant among the filtered variants visible in the parent document's current collection." type="boolean" access="r"/>
             <property name="queued" code="vapq" type="boolean" access="r" description="Is this variant currently queued for processing."/>
             <property name="processing mode" code="vtpm" type="technical processing mode" description="Corresponds to Mode in Base Characteristics."/>
+            <property name="color system" code="vcos" type="curve color system"/>
             <property name="engine" code="CVnj" description="The processing engine version in use for this variant.  Generally corresponds to the version of Capture One under which the image was originally edited, multiplied by 100." type="integer" access="r"/>
             <property name="adjustments" code="vset" type="adjustment settings" description="The variant's Image Layer adjustment settings."/>
 			<property name="styles" code="vsty" description="The name(s) of styles and/or presets that have been applied to this variant's Image Layer.">
@@ -1180,6 +1218,12 @@
 				<cocoa key="cropCenterY"/>
 			</property>
             <property name="crop outside image" code="vcrK" description="Is crop outside image enabled." type="boolean"/>
+            <property name="assisted review eyes state" code="ARvs" type="assisted review eyes state" access="r" description="The Assisted Review eyes-state result, or missing value if not reviewed.">
+            </property>
+            <property name="assisted review eyes focus" code="ARvf" type="assisted review eyes focus" access="r" description="The Assisted Review eyes-focus result, or missing value if not reviewed.">
+            </property>
+            <property name="assisted review exposure" code="ARvx" type="assisted review exposure" access="r" description="The Assisted Review exposure result, or missing value if not reviewed.">
+            </property>
 			<responds-to command="process">
 				<cocoa method=""/>
 			</responds-to>
@@ -1244,6 +1288,14 @@
                 <cocoa method="handleShowOnLiveForStudioCommand:"/>
             </responds-to>
 		</class>
+        
+        <enumeration name="curve color system" code="Cccs">
+            <enumerator name="Capture One" code="CCco"><cocoa integer-value="1"/></enumerator>
+            <enumerator name="DNG" code="CCdn"><cocoa integer-value="2"/></enumerator>
+            <enumerator name="Fujifilm" code="CCfu"><cocoa integer-value="3"/></enumerator>
+            <enumerator name="From File" code="CCpf"><cocoa integer-value="4"/></enumerator>
+            <enumerator name="Other" code="CCun"><cocoa integer-value="0"/></enumerator>
+        </enumeration>
 
         <class name="lens correction settings" code="Clco" description="Settings used to correct for lens distortion.">
             <cocoa class="LensCorrectionAppleScript"/>
@@ -1427,6 +1479,9 @@
             <property name="red" code="CRrd" type="integer" description="The red component of the origin color."/>
             <property name="green" code="CRgn" type="integer" description="The green component of the origin color."/>
             <property name="blue" code="CRbl" type="integer" description="The blue component of the origin color."/>
+            <property name="target red" code="CTrd" type="integer" description="The red component of the target color."/>
+            <property name="target green" code="CTgn" type="integer" description="The green component of the target color."/>
+            <property name="target blue" code="CTbl" type="integer" description="The blue component of the target color."/>
             <property name="hue start" code="Chus" type="real"/>
             <property name="hue end" code="Chue" type="real"/>
             <property name="saturation start" code="Csas" type="real"/>
@@ -1435,6 +1490,9 @@
             <property name="hue change" code="Chuc" type="real"/>
             <property name="saturation change" code="Csac" type="real"/>
             <property name="lightness change" code="Clic" type="real"/>
+            <property name="hue uniformity" code="Chuu" type="real"/>
+            <property name="saturation uniformity" code="Csau" type="real"/>
+            <property name="lightness uniformity" code="Cliu" type="real"/>
         </class>
             
         <enumeration name="tool placement" code="CTpe">
@@ -1592,6 +1650,7 @@
 			<property name="name" code="pnam" description="The name of the image file." type="text" access="rw">
 				<cocoa key="name"/>
 			</property>
+            <property name="source filename" code="Cisf" description="The original filename at time of import or capture (empty for already-imported/captured images)" type="text"/>
 			<property name="id" code="ID  " type="text" access="r" description="The unique identifier of the image.">
 				<cocoa key="uuid"/>
 			</property>
@@ -1627,6 +1686,9 @@
 			</responds-to>
 			<responds-to command="unpack">
 				<cocoa method="handleUnpackCommand:"/>
+			</responds-to>
+			<responds-to command="repack">
+				<cocoa method="handleRepackCommand:"/>
 			</responds-to>
             <responds-to command="relink">
                 <cocoa method="handleRelinkCommand:"/>
@@ -2084,6 +2146,10 @@
             <direct-parameter type="image"/>
 		</command>
 
+		<command name="repack" code="Cap1REIP" hidden="yes" description="Synchronously write a packed image's full state. Does nothing if the image is not packed.">
+            <direct-parameter type="image"/>
+		</command>
+
         <command name="relink" code="Cap1Rlnk" description="Relink a catalog image file.  The file must be the exact same size and type as the originally imported image.">
             <direct-parameter type="image"/>
             <parameter name="to path" code="COpt" description="The new path for the image's file." type="text">
@@ -2097,6 +2163,23 @@
 				<type type="variant" list="yes"/>
 			</parameter>
 		</command>
+
+		<command name="review variants" code="Cap1ARrv" description="Run Assisted Review analysis on the given variants. When eyes state, eyes focus or exposure are omitted, uses the current Assisted Review settings.">
+            <direct-parameter type="document"/>
+            <parameter name="variants" code="COvl" description="The variant(s) to review.">
+                <type type="variant" list="yes"/>
+            </parameter>
+            <parameter name="eyes state" code="ARbs" type="boolean" optional="yes"/>
+            <parameter name="eyes focus" code="ARbf" type="boolean" optional="yes"/>
+            <parameter name="exposure" code="ARbx" type="boolean" optional="yes"/>
+        </command>
+
+		<command name="reset assisted review" code="Cap1ARrs" description="Clear Assisted Review results from the given variants.">
+            <direct-parameter type="document"/>
+            <parameter name="variants" code="COvl" description="The variant(s) whose Assisted Review results should be cleared.">
+                <type type="variant" list="yes"/>
+            </parameter>
+        </command>
 
 		<command name="synchronize" code="Cap1Sync" description="Perform imports and/or deletes in a folder collection to reflect the contents of the actual folder on disk.  All parameters below are optional.">
             <direct-parameter type="collection"/>
@@ -2183,6 +2266,10 @@
             <parameter name="named" code="COTn" type="text"/>
             <parameter name="notification" code="Ctno" type="text"/>
             <parameter name="next script path" code="Ctsp" type="text" optional="yes"/>
+        </command>
+
+        <command name="telemetry" code="Cap1Tlmt" hidden="yes">
+            <parameter name="value" code="CPva" type="text"/>
         </command>
 
         <enumeration name="select type" code="C1St">

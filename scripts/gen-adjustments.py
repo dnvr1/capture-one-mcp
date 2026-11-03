@@ -11,7 +11,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
-SDEF = os.environ.get("CO_SDEF", "reference/CaptureOne-16.8.5.sdef")
+SDEF = os.environ.get("CO_SDEF", "reference/CaptureOne-16.9.sdef")
 SIMPLE = {"real", "integer", "boolean", "text"}
 
 

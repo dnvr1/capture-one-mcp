@@ -10,9 +10,10 @@ scripting interface. It is not a wrapper around a stable API: every call is an
 Apple Event to a live desktop app that is editing someone's real photo library.
 Most of the complexity in this repo exists because of that, not because of MCP.
 
-- Built against **Capture One 16.8.5.30** (`com.captureone.captureone16`).
-  The vendored dictionary is `reference/CaptureOne-16.8.5.sdef`.
-- **42 tools**: 16 `read`, 2 `view`, 21 `data`, 3 `destructive`.
+- Built against **Capture One 16.9.0.10** (`com.captureone.captureone16`).
+  The vendored dictionary is `reference/CaptureOne-16.9.sdef`. Write paths were
+  last validated live on 16.8.5; see the README's Target section.
+- **43 tools**: 17 `read`, 2 `view`, 21 `data`, 3 `destructive`.
 - TypeScript, ESM, Node 20+, no runtime deps beyond `@modelcontextprotocol/sdk`
   and `zod`.
 
@@ -25,7 +26,7 @@ whoever is *changing* the code.
 npm run build        # tsc -> dist/ (gitignored)
 npm run typecheck    # tsc --noEmit
 npm run verify       # typecheck + parse every embedded JXA block (43 currently)
-npm test             # build + node --test tests/*.test.mjs (200 currently)
+npm test             # build + node --test tests/*.test.mjs (204 currently)
 ```
 
 `npm run verify && npm test` is the gate for any change. Both are hermetic:
@@ -51,7 +52,7 @@ into a silent `null` — that is exactly how `co_get_recipe` shipped reporting
 
 ```
 src/index.ts           stdio entry point
-src/server.ts          all 42 tool registrations + risk gating (the one big file)
+src/server.ts          all 43 tool registrations + risk gating (the one big file)
 src/config.ts          risk tiers and the env-var gate
 src/jxa/bridge.ts      osascript transport, document binding, error translation
 src/jxa/health.ts      liveness probe: "not running" vs "events blocked"
