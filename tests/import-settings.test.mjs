@@ -61,3 +61,61 @@ test('without a requirement the import proceeds as before', async () => {
     assert.deepEqual(h.calls.map(c => c[1]), ['import settings', 'import']);
   });
 });
+
+// Runs the real submitted body, because the failure is inside the script text.
+function runImportBody(body, variants) {
+  const imported = [];
+  const doc = {variants: () => variants, import: (options) => imported.push(options.source)};
+  const result = new Function('args', 'requireDoc', body)({sources: ['/a.nef']}, () => doc);
+  return {result, imported};
+}
+
+async function submittedBody(file) {
+  let body;
+  const readDocumentSettings = async (_object, keys) => Object.fromEntries(keys.map(k => [k, 'x']));
+  const runJxa = async (b) => { body = b; return {variantsBefore: 0}; };
+  const importImages = new Function('readDocumentSettings', 'runJxa', 'IMAGE_EXTENSIONS',
+    compiled + '\nreturn importImages;')(readDocumentSettings, runJxa, new Set(['nef']));
+  await importImages([file], false);
+  return body;
+}
+
+// Seen live on 16.9: a session made by script has no current collection.
+test('a document with no current collection still imports, and reports the count as unknown', async () => {
+  await withFile(async (file) => {
+    const {result, imported} = runImportBody(await submittedBody(file), null);
+    assert.equal(result.variantsBefore, null);
+    assert.deepEqual(imported, [['/a.nef']]);
+  });
+});
+
+test('an empty collection is a count of zero, not unknown', async () => {
+  await withFile(async (file) => {
+    const {result} = runImportBody(await submittedBody(file), []);
+    assert.equal(result.variantsBefore, 0);
+  });
+});
+
+test('a copying import with no naming format warns about EmptyName', async () => {
+  await withFile(async (file) => {
+    const r = await harness('session folder').importImages([file], false);
+    assert.match(r.warnings[0], /EmptyName/);
+  });
+});
+
+test('an in-place import with no naming format does not warn, because nothing is renamed', async () => {
+  await withFile(async (file) => {
+    const r = await harness('current location').importImages([file], false);
+    assert.equal(r.warnings, undefined);
+  });
+});
+
+test('a copying import with a naming format does not warn', async () => {
+  await withFile(async (file) => {
+    const calls = async (_object, keys) => Object.fromEntries(keys.map(k => [k, k === 'destination type' ? 'session folder' : '[Image Name]']));
+    const importImages = new Function('readDocumentSettings', 'runJxa', 'IMAGE_EXTENSIONS',
+      compiled + '\nreturn importImages;')(calls, async () => ({variantsBefore: 1}), new Set(['nef']));
+    const r = await importImages([file], false);
+    assert.equal(r.warnings, undefined);
+  });
+});

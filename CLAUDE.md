@@ -11,8 +11,8 @@ Apple Event to a live desktop app that is editing someone's real photo library.
 Most of the complexity in this repo exists because of that, not because of MCP.
 
 - Built against **Capture One 16.9.0.10** (`com.captureone.captureone16`).
-  The vendored dictionary is `reference/CaptureOne-16.9.sdef`. Write paths were
-  last validated live on 16.8.5; see the README's Target section.
+  The vendored dictionary is `reference/CaptureOne-16.9.sdef`. Live results for
+  16.9 are in `docs/WORKFLOW-VALIDATION.md`.
 - **43 tools**: 17 `read`, 2 `view`, 21 `data`, 3 `destructive`.
 - TypeScript, ESM, Node 20+, no runtime deps beyond `@modelcontextprotocol/sdk`
   and `zod`.
@@ -26,7 +26,7 @@ whoever is *changing* the code.
 npm run build        # tsc -> dist/ (gitignored)
 npm run typecheck    # tsc --noEmit
 npm run verify       # typecheck + parse every embedded JXA block (43 currently)
-npm test             # build + node --test tests/*.test.mjs (204 currently)
+npm test             # build + node --test tests/*.test.mjs (209 currently)
 ```
 
 `npm run verify && npm test` is the gate for any change. Both are hermetic:
@@ -249,6 +249,14 @@ in `docs/`.
   remains **unverified** because none can be created to test against. It stops
   after the first removal if the keyword leaves the document's list; settle it
   with `npm run verify:keywords -- "<keyword>"` on a UI-added keyword.
+- **A session created by script has no current collection and no import naming
+  format.** `d.variants()` is then null, not empty, and a copying import writes
+  every file as `EmptyName.<ext>`. `importImages` handles the first and warns on
+  the second. Setting a collection current is what makes variants listable.
+- **Color balance hues wrap.** Writing 0 can read back as 360, which is the same
+  hue, so `verify-adjustments.mjs` reports them as not restored, and regenerating
+  `adjustment-ranges.ts` from a probe of a variant at 0 drops their
+  `modular: true`. Keep those entries.
 - **Layers have no id** and are addressed by index; 0 is always the background
   layer, which rejects both name and opacity changes.
   See [docs/LAYERS.md](docs/LAYERS.md).

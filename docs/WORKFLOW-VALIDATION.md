@@ -29,6 +29,17 @@ Live testing caught and fixed two recipe setup requirements: Capture One accepts
 
 This validates the basic workflow on this installation. Pixel-level mask preservation, curves, luma ranges, other Capture One versions, and queue-contention recovery were not live-tested. Comparison explicitly reports its coverage limitations.
 
+## Live validation: Capture One Pro 16.9.0.10, 2026-11-03
+
+Disposable session under a temp folder, holding copies of four RAWs (CR3, ARW, IIQ, DNG). The server was bound to it with `CAPTURE_ONE_MCP_DOCUMENT`, and the source catalog's originals were checksummed unchanged afterwards.
+
+- `verify-adjustments.mjs`: no silent no-ops and no read failures across 83 properties. Regenerated ranges match `adjustment-ranges.ts` except for the four color balance hues losing `modular: true`, which comes from probing a variant whose hues read 0, not from a change in the app. The committed round-trip file was kept.
+- `testbed.mjs` snapshot, diff and restore: restore removed the test layers and put flags, metadata and adjustments back. What remained was hue 0 reading 360 and saturation 0 reading 0.00003, both the probe's own writes.
+- Every editing tool ran, and refused where it should: an out-of-range value, an unknown variant id, no target at all, the background layer, a wrong document id, and opening another document on a bound server.
+- Previews rendered at the requested bound with an embedded `sRGB IEC61966-2.1` profile (checked with `sips`). People masks created layers on the two images with people and reported "No people detected" on the others.
+
+Not validated: `co_remove_keyword` against a real keyword, because keywords cannot be created by script, so `verify-keyword-removal.mjs` still needs one added in the UI. `co_export_originals` was only seen refusing an unset destination, not copying files. Mask contents remain unreadable, so mask tools confirm only that the command was accepted.
+
 ## Repeatable disposable-session procedure
 
 1. Confirm `co_status` can read the running app and document. Resolve any visible application or automation dialog before making writes.

@@ -615,20 +615,35 @@ export async function importImages(
     );
   }
 
-  const fired = await runJxa<{ variantsBefore: number }>(
+  // A session created by script has no current collection, and then d.variants()
+  // is null rather than empty. The count is only a baseline for the caller, so
+  // that must not stop the import: null says "unknown", where 0 would claim the
+  // document was empty.
+  const fired = await runJxa<{ variantsBefore: number | null }>(
     `
     const d = requireDoc();
-    const before = d.variants().length;
+    const variants = d.variants();
+    const before = variants ? variants.length : null;
     d.import({ source: args.sources });
     return { variantsBefore: before };
     `,
     { args: { sources }, timeoutMs: 300_000, mutating: true },
   );
 
+  // Seen live on 16.9: with no naming format, a copying import writes every file
+  // as EmptyName.<ext>. The source is untouched and the import reports nothing,
+  // so the only sign is here. Warned rather than refused, since the format can
+  // only be changed in the Import dialog and the copies are still usable.
+  const copies = settings["destination type"] !== "current location";
+  const warnings = copies && settings["import naming format"] === ""
+    ? ["The import naming format is empty, so Capture One names the copies 'EmptyName'. Set a format in Capture One's Import dialog to keep the original filenames."]
+    : [];
+
   return {
     sources,
     ...fired,
     settings,
+    ...(warnings.length ? { warnings } : {}),
     note: "Import runs asynchronously; poll co_list_variants for the resulting variants.",
   };
 }
