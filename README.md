@@ -172,8 +172,23 @@ a keyword library from a file.
 Consequently `co_remove_keyword` is implemented but **has not been verified
 against a real keyword** — the standing test session has none and none can be
 created, so its blast radius (whether deleting a variant's keyword also removes
-it from the document) is unconfirmed. The tool reports
-`documentKeywordSurvives` so a caller can check.
+it from the document) is unconfirmed. Until it is, the tool guards it rather than trusting it:
+
+- After the first variant that actually loses the keyword, it re-reads the
+  document's keyword list. If the keyword has gone from there too, it stops with
+  `status: "incomplete"`, `stoppedBecause: "document_keyword_removed"` and the
+  rest of the targets in `unattemptedIds`, so a wrong guess costs one variant,
+  not the whole selection.
+- Each removal is read back per variant (`readBack.keywordStillPresent`).
+- It reports `documentKeywordBefore` next to `documentKeywordSurvives`, so a
+  keyword that was never in the document's list doesn't look destroyed.
+
+To settle the question on a Mac, add one keyword to two images in a disposable
+session through the UI and run `npm run verify:keywords -- "<keyword>"` with
+`CAPTURE_ONE_MCP_TESTBED_DOCUMENT` set (see
+[scripts/verify-keyword-removal.mjs](scripts/verify-keyword-removal.mjs)). It
+removes the keyword from one image, checks the other image and the document
+kept it, and puts it back.
 
 ## Candidate editing workflow
 

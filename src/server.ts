@@ -517,8 +517,11 @@ export function createServer(config: ServerConfig = loadConfig()): McpServer {
     "co_remove_keyword",
     "data",
     "Remove a keyword from variants. Intended to remove it from those variants only, leaving " +
-      "the keyword in the document's keyword list; the result reports whether that held. NOTE: " +
-      "not yet verified against a real keyword, so confirm the result before using it broadly.",
+      "the keyword in the document's keyword list. Each removal is read back " +
+      "(readBack.keywordStillPresent). Guarded: if the first removal also takes the keyword out " +
+      "of the document's list, the batch stops after that one variant with status 'incomplete' " +
+      "and stoppedBecause 'document_keyword_removed'. NOTE: not yet verified against a real " +
+      "keyword, so check documentKeywordSurvives before using it broadly.",
     {
       variant_ids: z
         .array(z.string())
